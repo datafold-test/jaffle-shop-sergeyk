@@ -3,10 +3,10 @@ default:
   outputs:
     dev:
       type: postgres
-      host: "{{ env_var('POSTGRES_HOST', 'localhost') }}"
-      port: "{{ env_var('POSTGRES_PORT', '35432') | int }}"
+      host: "{{ env_var('POSTGRES_HOST', 'sergeyk-postgres.c7ecoc5tqlwf.us-east-1.rds.amazonaws.com') }}"
+      port: "{{ env_var('POSTGRES_PORT', '5432') | int }}"
       user: "{{ env_var('POSTGRES_USER', 'postgres') }}"
-      password: "{{ env_var('POSTGRES_PASSWORD', 'temporal') }}"
-      dbname: "{{ env_var('POSTGRES_DB', 'jaffle_shop') }}"
+      password: "{{ env_var('POSTGRES_PASSWORD') }}"
+      dbname: "{{ env_var('POSTGRES_DB', 'postgres') }}"
       schema: "{{ env_var('POSTGRES_SCHEMA', 'public') }}"
       threads: 4
