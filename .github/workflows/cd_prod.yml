@@ -1,4 +1,4 @@
-name: dbt Cloud Deploy Prod
+name: Production Job
 
 on:
   push:
@@ -6,74 +6,57 @@ on:
       - main
 
 jobs:
-  run_snowflake:
-    name: dbt Cloud Deploy Prod Snowflake
-    runs-on: macos-latest
+  dbt_build:
+    name: dbt Build Production
+    runs-on: ubuntu-latest
 
     env:
-      DBT_ACCOUNT_ID: 188483
-      DBT_PROJECT_ID: 283328
-      DBT_PR_JOB_ID: 409009
-      DBT_API_KEY: ${{ secrets.DBT_CLOUD_API_KEY }}
-      DBT_JOB_CAUSE: "GitHub Actions Request"
-      DBT_JOB_BRANCH: main
+      DBT_PROFILES_DIR: .
 
     steps:
-      - uses: "actions/checkout@v4"
-      - uses: "actions/setup-python@v5"
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install uv
-        run: python3 -m pip install uv
-      - name: Install deps
-        run: uv pip install -r requirements.txt --system
-      - name: Run dbt Cloud job
-        run: python3 .github/workflows/scripts/dbt_cloud_run_job.py
 
-  run_bigquery:
-    name: dbt Cloud Deploy Prod BigQuery
-    runs-on: macos-latest
+      - name: Install dependencies
+        run: |
+          pip install -q dbt-postgres datafold-sdk
 
-    env:
-      DBT_ACCOUNT_ID: 188483
-      DBT_PROJECT_ID: 275557
-      DBT_PR_JOB_ID: 553247
-      DBT_API_KEY: ${{ secrets.DBT_CLOUD_API_KEY }}
-      DBT_JOB_CAUSE: "GitHub Actions Request"
-      DBT_JOB_BRANCH: main
+      - name: Create profiles.yml
+        run: |
+          cat > profiles.yml <<EOF
+          default:
+            target: prod
+            outputs:
+              prod:
+                type: postgres
+                host: ${{ secrets.POSTGRES_HOST }}
+                port: ${{ secrets.POSTGRES_PORT }}
+                user: ${{ secrets.POSTGRES_USER }}
+                password: ${{ secrets.POSTGRES_PASSWORD }}
+                dbname: ${{ secrets.POSTGRES_DB }}
+                schema: public
+                threads: 4
+          EOF
 
-    steps:
-      - uses: "actions/checkout@v4"
-      - uses: "actions/setup-python@v5"
-        with:
-          python-version: "3.12"
-      - name: Install uv
-        run: python3 -m pip install uv
-      - name: Install deps
-        run: uv pip install -r requirements.txt --system
-      - name: Run dbt Cloud job
-        run: python3 .github/workflows/scripts/dbt_cloud_run_job.py
+      - name: Install dbt packages
+        run: dbt deps
 
-  run_postgres:
-    name: dbt Cloud Deploy Prod Postgres
-    runs-on: macos-latest
+      - name: Seed data
+        run: dbt seed --full-refresh --vars '{"load_source_data": true}'
 
-    env:
-      DBT_ACCOUNT_ID: 188483
-      DBT_PROJECT_ID: 288405
-      DBT_PR_JOB_ID: 577871
-      DBT_API_KEY: ${{ secrets.DBT_CLOUD_API_KEY }}
-      DBT_JOB_CAUSE: "GitHub Actions Request"
-      DBT_JOB_BRANCH: main
+      - name: Build dbt project
+        run: dbt build
 
-    steps:
-      - uses: "actions/checkout@v4"
-      - uses: "actions/setup-python@v5"
-        with:
-          python-version: "3.12"
-      - name: Install uv
-        run: python3 -m pip install uv
-      - name: Install deps
-        run: uv pip install -r requirements.txt --system
-      - name: Run dbt Cloud job
-        run: python3 .github/workflows/scripts/dbt_cloud_run_job.py
+      - name: Upload artifacts to Datafold
+        run: |
+          datafold dbt upload \
+            --ci-config-id ${{ secrets.DATAFOLD_CI_CONFIG_ID }} \
+            --run-type production \
+            --commit-sha ${GITHUB_SHA}
+        env:
+          DATAFOLD_API_KEY: ${{ secrets.DATAFOLD_API_KEY }}
