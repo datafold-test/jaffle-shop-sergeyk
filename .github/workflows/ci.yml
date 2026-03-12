@@ -51,7 +51,7 @@ jobs:
           set -ex
           datafold dbt upload --ci-config-id ${DATAFOLD_CI_CONFIG_ID} --run-type ${DATAFOLD_RUN_TYPE} --commit-sha ${GIT_SHA}
         env:
-          DATAFOLD_APIKEY: ${{ secrets.DATAFOLD_APIKEY }}
+          DATAFOLD_API_KEY: ${{ secrets.DATAFOLD_API_KEY }}
           DATAFOLD_CI_CONFIG_ID: ${{ secrets.DATAFOLD_CI_CONFIG_ID }}
           DATAFOLD_RUN_TYPE: pull_request
           GIT_SHA: ${{ github.event.pull_request.head.sha }}
