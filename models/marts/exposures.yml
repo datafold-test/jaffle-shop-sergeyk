@@ -1,0 +1,28 @@
+version: 2
+
+exposures:
+  - name: executive_dashboard
+    type: dashboard
+    maturity: high
+    url: https://bi.example.com/dashboards/executive
+    description: Executive KPI dashboard showing revenue, orders, and customer metrics
+    depends_on:
+      - ref('orders')
+      - ref('customers')
+    owner:
+      name: Analytics Team
+      email: analytics@example.com
+
+  - name: order_details_report
+    type: analysis
+    maturity: medium
+    url: https://bi.example.com/reports/order-details
+    description: Detailed order breakdown with product and location data
+    depends_on:
+      - ref('orders')
+      - ref('order_items')
+      - ref('products')
+      - ref('locations')
+    owner:
+      name: Operations Team
+      email: ops@example.com
